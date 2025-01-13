@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script type="text/javascript">
+      (function() {
+        var myConnector = tableau.makeConnector();
+
+        myConnector.getSchema = function(schemaCallback) {
+          var cols = [
+            { id: "station", dataType: tableau.dataTypeEnum.string },
+            { id: "state", dataType: tableau.dataTypeEnum.string },
+            { id: "aqi", dataType: tableau.dataTypeEnum.float },
+            { id: "pollutant", dataType: tableau.dataTypeEnum.string },
+            { id: "last_update", dataType: tableau.dataTypeEnum.datetime }
+          ];
+
+          var tableSchema = {
+            id: "aqiData",
+            alias: "Air Quality Index Data from data.gov.in",
+            columns: cols
+          };
+
+          schemaCallback([tableSchema]);
+        };
+
+        myConnector.getData = function(table, doneCallback) {
+          var apiUrl = "https://api.data.gov.in/resource/<resource_id>?api-key=579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b&format=json&offset=0&limit=1000";
+          
+          $.getJSON(apiUrl, function(resp) {
+            var records = resp.records;
+            var tableData = [];
+
+            records.forEach(function(record) {
+              tableData.push({
+                station: record.station,
+                state: record.state,
+                aqi: parseFloat(record.aqi),
+                pollutant: record.pollutant_id,
+                last_update: new Date(record.last_update)
+              });
+            });
+
+            table.appendRows(tableData);
+            doneCallback();
+          });
+        };
+
+        tableau.registerConnector(myConnector);
+
+        $(document).ready(function() {
+          $("#submitButton").click(function() {
+            tableau.connectionName = "AQI Data from data.gov.in";
+            tableau.submit();
+          });
+        });
+      })();
+    </script>
+  </head>
+  <body>
+    <h2>AQI Data Web Data Connector</h2>
+    <p>Click the button below to connect to the AQI API and fetch data.</p>
+    <button id="submitButton">Get Data</button>
+  </body>
+</html>
